@@ -13,3 +13,6 @@ There are several reasons:
 
 ## How it works and how to use it?
 Read full description and documentation [here](http://blog.bulki.me/STM32-LCD-HD44780-I2C/).
+
+## Russian support
+Now work only normal with UP case
