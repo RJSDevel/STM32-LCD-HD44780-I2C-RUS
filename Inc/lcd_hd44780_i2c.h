@@ -1,5 +1,6 @@
 /**
  * Copyright Nikita Bulaev 2017
+ * Russia language support Yagupov Ruslan
  *
  * STM32 HAL libriary for LCD display based on HITACHI HD44780U chip.
  *
@@ -32,7 +33,7 @@
 extern "C" {
 #endif
 
-#include "stm32f3xx_hal.h"
+#include "stm32f1xx_hal.h"
 
 #define LCD_BIT_RS                 ((uint8_t)0x01U)
 #define LCD_BIT_RW                 ((uint8_t)0x02U)
@@ -46,6 +47,7 @@ extern "C" {
 #define LCD_BIT_4LINE              LCD_BIT_2LINE
 #define LCD_BIT_5x8DOTS            ((uint8_t)0x00U)
 #define LCD_BIT_5x10DOTS           ((uint8_t)0x04U)
+
 #define LCD_BIT_SETCGRAMADDR       ((uint8_t)0x40U)
 #define LCD_BIT_SETDDRAMADDR       ((uint8_t)0x80U)
 
@@ -127,7 +129,7 @@ bool lcdInit(I2C_HandleTypeDef *hi2c, uint8_t address, uint8_t lines, uint8_t ro
 bool lcdCommand(LCDCommands command, LCDParamsActions action);
 bool lcdBacklight(uint8_t command);
 bool lcdSetCursorPosition(uint8_t line, uint8_t row);
-bool lcdPrintStr(uint8_t * data, uint8_t length);
+bool lcdPrintString(char* data, uint8_t start);
 bool lcdPrintChar(uint8_t data);
 bool lcdLoadCustomChar(uint8_t cell, uint8_t * charMap);
 

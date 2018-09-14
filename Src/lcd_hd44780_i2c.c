@@ -1,5 +1,6 @@
 /**
  * Copyright Nikita Bulaev 2017
+ * Russia language support Yagupov Ruslan
  *
  * STM32 HAL libriary for LCD display based on HITACHI HD44780U chip.
  *
@@ -17,32 +18,105 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
-    Here are some cyrillic symbols that you can use in your code
-
-    uint8_t symD[8]   = { 0x07, 0x09, 0x09, 0x09, 0x09, 0x1F, 0x11 }; // Ð”
-    uint8_t symZH[8]  = { 0x11, 0x15, 0x15, 0x0E, 0x15, 0x15, 0x11 }; // Ð–
-    uint8_t symI[8]   = { 0x11, 0x11, 0x13, 0x15, 0x19, 0x11, 0x11 }; // Ð˜
-    uint8_t symL[8]   = { 0x0F, 0x09, 0x09, 0x09, 0x09, 0x11, 0x11 }; // Ð›
-    uint8_t symP[8]   = { 0x1F, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11 }; // ÐŸ
-    uint8_t symSHi[8] = { 0x10, 0x15, 0x15, 0x15, 0x15, 0x1F, 0x03 }; // Ð©
-    uint8_t symJU[8]  = { 0x12, 0x15, 0x15, 0x1D, 0x15, 0x15, 0x12 }; // Ð®
-    uint8_t symJA[8]  = { 0x0F, 0x11, 0x11, 0x0F, 0x05, 0x09, 0x11 }; // Ð¯
-
-
- */
 
 #include "stdlib.h"
 #include "string.h"
-#include "FreeRTOS.h"
-#include "task.h"
 #include "lcd_hd44780_i2c.h"
+
 
 uint8_t lcdCommandBuffer[6] = {0x00};
 
 static LCDParams lcdParams;
 
 static bool lcdWriteByte(uint8_t rsRwBits, uint8_t * data);
+
+static uint8_t currentCurson = 0;
+
+
+#define RUSSIAN_LOCALIZATION_COUNT 48
+
+uint8_t russian_alphabet[RUSSIAN_LOCALIZATION_COUNT][9] = {
+		{ 'á', 0x03, 0x0C, 0x10, 0x1E, 0x11, 0x11, 0x0E },
+		{ 'â', 0x00, 0x00, 0x1E, 0x11, 0x1E, 0x11, 0x1E },
+		{ 'ã', 0x00, 0x00, 0x1E, 0x10, 0x10, 0x10, 0x10 },
+		{ 'ä', 0x00, 0x00, 0x06, 0x0A, 0x0A, 0xFF, 0x11 },
+		{ '¸', 0x0A, 0x00, 0x0E, 0x11, 0xFF, 0x10, 0x0F },
+		{ 'æ', 0x00, 0x00, 0x15, 0x15, 0x0E, 0x15, 0x15 },
+		{ 'ç', 0x00, 0x00, 0x0E, 0x11, 0x06, 0x11, 0x0E },
+		{ 'è', 0x00, 0x00, 0x11, 0x13, 0x15, 0x19, 0x11 },
+		{ 'é', 0x0A, 0x04, 0x11, 0x13, 0x15, 0x19, 0x11 },
+		{ 'ê', 0x00, 0x00, 0x12, 0x14, 0x18, 0x14, 0x12 },
+		{ 'ë', 0x00, 0x00, 0x07, 0x09, 0x09, 0x09, 0x11 },
+		{ 'ì', 0x00, 0x00, 0x11, 0x1b, 0x15, 0x11, 0x11 },
+		{ 'í', 0x00, 0x00, 0x11, 0x11, 0x1f, 0x11, 0x11 },
+		{ 'ï', 0x00, 0x00, 0x1f, 0x11, 0x11, 0x11, 0x11 },
+		{ 'ò', 0x00, 0x00, 0x1f, 0x04, 0x04, 0x04, 0x04 },
+		{ 'ó', 0x00, 0x00, 0x11, 0x11, 0x0f, 0x01, 0x0e },
+		{ 'ô', 0x00, 0x00, 0x1f, 0x15, 0x15, 0x1f, 0x04 },
+		{ 'ö', 0x00, 0x00, 0x12, 0x12, 0x12, 0x1f, 0x01 },
+		{ '÷', 0x00, 0x00, 0x11, 0x11, 0x0f, 0x01, 0x01 },
+		{ 'ø', 0x00, 0x00, 0x15, 0x15, 0x15, 0x15, 0x1f },
+		{ 'ù', 0x00, 0x00, 0x15, 0x15, 0x15, 0x1f, 0x01 },
+		{ 'ú', 0x00, 0x00, 0x18, 0x0e, 0x09, 0x09, 0x0e },
+		{ 'û', 0x00, 0x00, 0x11, 0x11, 0x1d, 0x15, 0x1d },
+		{ 'ü', 0x00, 0x00, 0x10, 0x1e, 0x11, 0x11, 0x1e },
+		{ 'ý', 0x00, 0x00, 0x1e, 0x01, 0x0f, 0x01, 0x1e },
+		{ 'þ', 0x00, 0x00, 0x17, 0x15, 0x1d, 0x15, 0x17 },
+		{ 'ÿ', 0x00, 0x00, 0x0d, 0x13, 0x0f, 0x05, 0x09 },
+
+		{ 'Á', 0xFF, 0x10, 0x10, 0x1E, 0x11, 0x11, 0x1E },
+		{ 'Ã', 0xFF, 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 },
+		{ 'Ä', 0x07, 0x09, 0x09, 0x09, 0x09, 0x1F, 0x11 },
+		{ 'Æ', 0x11, 0x15, 0x15, 0x0E, 0x15, 0x15, 0x11 },
+		{ 'Ç', 0x0e, 0x11, 0x01, 0x06, 0x01, 0x11, 0x0e },
+		{ 'È', 0x11, 0x11, 0x11, 0x13, 0x15, 0x19, 0x11 },
+		{ 'É', 0x0e, 0x00, 0x11, 0x13, 0x15, 0x19, 0x11 },
+		{ 'Ë', 0x0F, 0x09, 0x09, 0x09, 0x09, 0x11, 0x11 },
+		{ 'Ï', 0x1F, 0x11, 0x11, 0x11, 0x11, 0x11, 0x11 },
+		{ 'Ó', 0x11, 0x11, 0x11, 0x0f, 0x01, 0x11, 0x0e },
+		{ 'Ô', 0x0e, 0x15, 0x15, 0x15, 0x0e, 0x04, 0x04 },
+		{ 'Ö', 0x12, 0x12, 0x12, 0x12, 0x12, 0x1f, 0x01 },
+		{ '×', 0x11, 0x11, 0x11, 0x0f, 0x01, 0x01, 0x01 },
+		{ 'Ø', 0x11, 0x15, 0x15, 0x15, 0x15, 0x15, 0x1f },
+		{ 'Ù', 0x10, 0x15, 0x15, 0x15, 0x15, 0x1F, 0x01 },
+		{ 'Ú', 0x18, 0x08, 0x08, 0x0e, 0x09, 0x09, 0x0e },
+		{ 'Û', 0x11, 0x11, 0x19, 0x15, 0x15, 0x15, 0x19 },
+		{ 'Ü', 0x10, 0x10, 0x1e, 0x11, 0x11, 0x11, 0x1e },
+		{ 'Ý', 0x1e, 0x01, 0x01, 0x0f, 0x01, 0x01, 0x1e },
+		{ 'Þ', 0x12, 0x15, 0x15, 0x1D, 0x15, 0x15, 0x12 },
+		{ 'ß', 0x0F, 0x11, 0x11, 0x0F, 0x05, 0x09, 0x11 }
+};
+
+#define RUSSIAN_ENG_SAME_COUNT 17
+
+uint8_t russian_eng_same[][2] = {
+		{'à', 'a'},
+		{'å', 'e'},
+		{'î', 'o'},
+		{'ð', 'p'},
+		{'ñ', 'c'},
+		{'õ', 'x'},
+
+		{'À', 'A'},
+		{'Â', 'B'},
+		{'Å', 'E'},
+		{'Ê', 'K'},
+		{'Ì', 'M'},
+		{'Í', 'H'},
+		{'Î', 'O'},
+		{'Ð', 'P'},
+		{'Ñ', 'C'},
+		{'Ò', 'T'},
+		{'Õ', 'X'}
+};
+
+
+#define MAX_CGRAM_LOCATION 8
+
+uint8_t current_cgram_location = 0;
+uint8_t alphabet_cgram_locations[MAX_CGRAM_LOCATION];
+
+
 
 /**
  * @brief  Turn display on and init it params
@@ -56,8 +130,6 @@ static bool lcdWriteByte(uint8_t rsRwBits, uint8_t * data);
  * @return         true if success
  */
 bool lcdInit(I2C_HandleTypeDef *hi2c, uint8_t address, uint8_t lines, uint8_t columns) {
-
-    TickType_t xLastWakeTime;
 
     uint8_t lcdData = LCD_BIT_5x8DOTS;
 
@@ -77,18 +149,16 @@ bool lcdInit(I2C_HandleTypeDef *hi2c, uint8_t address, uint8_t lines, uint8_t co
             return false;
         }
 
-        xLastWakeTime = xTaskGetTickCount();
-
         while (HAL_I2C_GetState(lcdParams.hi2c) != HAL_I2C_STATE_READY) {
-            vTaskDelay(1);
+            HAL_Delay(1);
         }
 
         if (i == 2) {
             // For the last cycle delay is less then 1 ms (100us by datasheet)
-            vTaskDelayUntil(&xLastWakeTime, (TickType_t)1);
+        	HAL_Delay(2);
         } else {
             // For first 2 cycles delay is less then 5ms (4100us by datasheet)
-            vTaskDelayUntil(&xLastWakeTime, (TickType_t)5);
+        	HAL_Delay(5);
         }
     }
 
@@ -102,7 +172,7 @@ bool lcdInit(I2C_HandleTypeDef *hi2c, uint8_t address, uint8_t lines, uint8_t co
     }
 
     while (HAL_I2C_GetState(lcdParams.hi2c) != HAL_I2C_STATE_READY) {
-        vTaskDelay(1);
+    	HAL_Delay(1);
     }
 
     /* Lets set display params */
@@ -113,7 +183,7 @@ bool lcdInit(I2C_HandleTypeDef *hi2c, uint8_t address, uint8_t lines, uint8_t co
         lcdData |= LCD_BIT_2LINE;
     }
 
-    lcdWriteByte((uint8_t)0x00, &lcdData);  // TODO: Make 5x10 dots font usable for some 1-line display
+    lcdWriteByte((uint8_t) 0x00, &lcdData);  // TODO: Make 5x10 dots font usable for some 1-line display
 
     /* Now lets set display, cursor and blink all on */
     lcdDisplayOn();
@@ -159,7 +229,7 @@ bool lcdCommand(LCDCommands command, LCDParamsActions action) {
                     if (lcdWriteByte((uint8_t)0x00, &lcdData) == false) {
                         return false;
                     } else {
-                        vTaskDelay(2);
+                    	HAL_Delay(2);
                         return true;
                     }
 
@@ -169,7 +239,7 @@ bool lcdCommand(LCDCommands command, LCDParamsActions action) {
                     if (lcdWriteByte((uint8_t)0x00, &lcdData) == false) {
                         return false;
                     } else {
-                        vTaskDelay(2);
+                    	HAL_Delay(2);
                         return true;
                     }
 
@@ -262,7 +332,7 @@ bool lcdBacklight(uint8_t command) {
     }
 
     while (HAL_I2C_GetState(lcdParams.hi2c) != HAL_I2C_STATE_READY) {
-        vTaskDelay(1);
+    	HAL_Delay(1);
     }
 
     return true;
@@ -287,31 +357,28 @@ bool lcdSetCursorPosition(uint8_t column, uint8_t line) {
     return lcdWriteByte(0x00, &lcdCommand);
 }
 
+void lcdSetCursor() {
+	uint8_t line = currentCurson / lcdParams.columns;
+	uint8_t cursor = line > 0 ? currentCurson++ - lcdParams.columns : currentCurson++;
+	lcdSetCursorPosition(cursor, line);
+}
+
 /**
  * @brief  Print string from cursor position
  * @param  data   Pointer to string
  * @param  length Number of symbols to print
  * @return        true if success
  */
-bool lcdPrintStr(uint8_t * data, uint8_t length) {
-    for (uint8_t i = 0; i < length; ++i) {
-        if (lcdWriteByte(LCD_BIT_RS, &data[i]) == false) {
-            return false;
-        }
+bool lcdPrintString(char* data, uint8_t start) {
+	currentCurson = start;
+    for (size_t i = 0; i < strlen(data); i++) {
+    	if (lcdPrintChar(data[i]) == false) {
+    		return false;
+    	}
     }
 
     return true;
 }
-
-/**
- * @brief  Print single char at cursor position
- * @param  data Symbol to print
- * @return      true if success
- */
-bool lcdPrintChar(uint8_t data) {
-    return lcdWriteByte(LCD_BIT_RS, &data);
-}
-
 
 /**
  * @brief Loading custom Chars to one of the 8 cells in CGRAM
@@ -324,20 +391,14 @@ bool lcdPrintChar(uint8_t data) {
  *                  Example: { 0x07, 0x09, 0x09, 0x09, 0x09, 0x1F, 0x11 }
  * @return          true if success
  */
-bool lcdLoadCustomChar(uint8_t cell, uint8_t * charMap) {
+bool loadCustomCharToLCD(uint8_t location, uint8_t* charMap) {
 
-    // Stop, if trying to load to incorrect cell
-    if (cell > 7) {
+    uint8_t command = LCD_BIT_SETCGRAMADDR | (location << 3);
+    if (lcdWriteByte((uint8_t) 0x00, &command) == false) {
         return false;
     }
 
-    uint8_t lcdCommand = LCD_BIT_SETCGRAMADDR | (cell << 3);
-
-    if (lcdWriteByte((uint8_t)0x00, &lcdCommand) == false) {
-        return false;
-    }
-
-    for (uint8_t i = 0; i < 8; ++i) {
+    for (uint8_t i = 1; i < 9; ++i) {
         if (lcdWriteByte(LCD_BIT_RS, &charMap[i]) == false) {
             return false;
         }
@@ -346,13 +407,72 @@ bool lcdLoadCustomChar(uint8_t cell, uint8_t * charMap) {
     return true;
 }
 
+uint8_t getPositionInCGRam(uint8_t alphabet) {
+	for (int i = 0; i < MAX_CGRAM_LOCATION; i++) {
+		if (alphabet_cgram_locations[i] == alphabet) {
+			return i;
+		}
+	}
+	return MAX_CGRAM_LOCATION + 1;
+}
+
+uint8_t localization(uint8_t data) {
+
+	if (data < 168) { // check is English
+		lcdSetCursor();
+		return data;
+	}
+
+	for (int i = 0; i < RUSSIAN_ENG_SAME_COUNT; i++) {
+		if (russian_eng_same[i][0] == data) {
+			lcdSetCursor();
+			return russian_eng_same[i][1];
+		}
+	}
+
+	for (int i = 0; i < RUSSIAN_LOCALIZATION_COUNT; i++) {
+		if (russian_alphabet[i][0] == data) {
+			uint8_t location = getPositionInCGRam(russian_alphabet[i][0]);
+			if (location < MAX_CGRAM_LOCATION + 1) {
+				lcdSetCursor();
+				return location;
+			} else {
+				current_cgram_location++;
+
+				if (current_cgram_location == MAX_CGRAM_LOCATION) {
+					current_cgram_location = 0;
+				}
+
+				alphabet_cgram_locations[current_cgram_location] = *russian_alphabet[i];
+
+				loadCustomCharToLCD(current_cgram_location, russian_alphabet[i]);
+
+				lcdSetCursor();
+				return current_cgram_location;
+			}
+		}
+	}
+
+	return data;
+}
+
+/**
+ * @brief  Print single char at cursor position
+ * @param  data Symbol to print
+ * @return      true if success
+ */
+bool lcdPrintChar(uint8_t data) {
+	uint8_t local = localization(data);
+    return lcdWriteByte(LCD_BIT_RS, &local);
+}
+
 /**
  * @brief  Local function to send data to display
  * @param  rsRwBits State of RS and R/W bits
  * @param  data     Pointer to byte to send
  * @return          true if success
  */
-static bool lcdWriteByte(uint8_t rsRwBits, uint8_t * data) {
+static bool lcdWriteByte(uint8_t rsRwBits, uint8_t* data) {
 
     /* Higher 4 bits*/
     lcdCommandBuffer[0] = rsRwBits | LCD_BIT_E | lcdParams.backlight | (*data & 0xF0);  // Send data and set strobe
@@ -370,7 +490,7 @@ static bool lcdWriteByte(uint8_t rsRwBits, uint8_t * data) {
     }
 
     while (HAL_I2C_GetState(lcdParams.hi2c) != HAL_I2C_STATE_READY) {
-        vTaskDelay(1);
+    	HAL_Delay(1);
     }
 
     return true;
